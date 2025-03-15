@@ -8,6 +8,28 @@ usage() {
     exit 1
 }
 
+# Options getter
+opt() {
+    local key="$1"
+    shift
+    local next_is_value=0
+
+    for arg in "$@"; do
+        if [ $next_is_value -eq 1 ]; then
+            echo "$arg"
+        fi
+
+        case "$arg" in
+            "$key")
+                next_is_value=1
+                ;;
+            "$key="*)
+                echo "${arg#*=}"
+                ;;
+        esac
+    done
+}
+
 # Rollback function
 rollback() {
     echo "[ERROR] Rolling back changes..."
@@ -31,23 +53,8 @@ rollback() {
 # Ensure rollback runs on failure
 trap rollback ERR
 
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --hostname)
-            HOSTNAME_VALUE="$2"
-            shift 2
-            ;;
-        --swap)
-            SWAP_SIZE="$2"
-            shift 2
-            ;;
-        *)
-            echo "Unknown option: $1"
-            usage
-            ;;
-    esac
-done
+HOSTNAME_VALUE="$(opt --hostname "$@")"
+SWAP_SIZE="$(opt --swap "$@")"
 
 # Validate required arguments
 if [[ -z "$HOSTNAME_VALUE" ]]; then
